@@ -164,11 +164,11 @@ functions={
 }
 
 def login_sequence():
-    # uname = input('Enter mysql username: ')
-    # pword = input('Enter mysql password: ')
+    uname = input('Enter mysql username: ')
+    pword = input('Enter mysql password: ')
 
     try:
-        cnx = pymysql.connect(host='localhost', user='root', password='seallover', db='tvshows',
+        cnx = pymysql.connect(host='localhost', user='root', password=uname, db=pword,
                               charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
     except:
         print('incorrect username or password')
@@ -178,7 +178,7 @@ def login_sequence():
     print('welcome!\nplease log in or sign up')
 
     while True:
-        c =  input()
+        c = input()
         try:
             functions[c](cnx, cur)
             break
