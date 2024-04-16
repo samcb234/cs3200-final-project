@@ -1,9 +1,11 @@
-import os
-
+from os import system, name
 import pymysql
+from tabulate import tabulate
+import pandas as pd
 
 sql_calls={
     "login":"call login(%s, %s);",
+    'all usernames':'call get_all_usernames();',
     "sign up": "call create_new_user(%s, %s, %s, %s);",
     "shows": "call get_all_shows();",
     'actors':'call get_all_actors();',
@@ -19,6 +21,16 @@ sql_calls={
     'network name':'call get_network_by_name(%s);'
 }
 
+
+def clear():
+    # for windows
+    if name == 'nt':
+        _ = system('cls')
+
+    # for mac and linux(here, os.name is 'posix')
+    else:
+        _ = system('clear')
+
 def display_data(data):
     for row in data:
         out = "| "
@@ -28,10 +40,9 @@ def display_data(data):
 
 
 
-
 def review_helper(con, cur, username, series_ID):
     def update_review(con, cur, username, series_ID, old_review):
-        os.system('clear')
+        clear()
         print('here is your current review')
         display_data([old_review])
         cur.execute(sql_calls['update review'],
@@ -40,17 +51,15 @@ def review_helper(con, cur, username, series_ID):
         return
 
     def delete_review(con, cur, username, series_ID, old_review):
-        os.system('clear')
+        clear()
         print('here is your current review')
         display_data([old_review])
         if input('are you sure you want to delete your review? (y/n)\n') == 'y':
             cur.execute(sql_calls['delete review'], (username, series_ID))
             con.commit()
 
-
-    os.system('clear')
-
     while True:
+        clear()
         cur.execute(sql_calls['show reviews'], (series_ID))
         reviews = cur.fetchall()
         display_data(reviews)
@@ -92,6 +101,7 @@ def show_pages(con, cur, username, field):
     rows = cur.fetchall()
 
     while True:
+        clear()
         display_data(rows)
         command = input('name a show to view or type exit to return to main menu: ')
 
@@ -99,7 +109,7 @@ def show_pages(con, cur, username, field):
             return
 
         cur.execute(sql_calls['get show'], (command))
-        os.system('clear')
+        clear()
         show = cur.fetchall()
         if show is None or show[0]['series_ID'] is None:
             print('no show exists with this name')
@@ -121,9 +131,10 @@ def other_pages(cnx, cur, username, field):
     if field == 'actor':
         input_string = 'name an actor to view or type exit to return to main menu: '
     else:
-        input_string = 'name a {field} to view or type exit to return to main menu'.format(field=field)
+        input_string = 'name a {field} to view or type exit to return to main menu: '.format(field=field)
 
     while True:
+        clear()
         display_data(rows)
         command = input(input_string)
 
@@ -131,7 +142,7 @@ def other_pages(cnx, cur, username, field):
             return
 
         cur.execute(sql_calls[field+' name'], (command))
-        os.system('clear')
+        clear()
         row = cur.fetchall()
         if row is None:
             print('no {field} exists with this name'.format(field=field))
@@ -152,7 +163,25 @@ def login(cnx, cur):
             return main_menu(cnx, cur, validate[0]['username'])
 
 def signup(cnx, cur):
-    print('signup')
+    clear()
+    cur.execute(sql_calls['all usernames'])
+    vals = cur.fetchall()
+    usernames = []
+    for row in vals:
+        usernames.append(row['username'])
+    while True:
+        u = input('create your username: ')
+        if u in usernames:
+            clear()
+            print('this username has alread been taken')
+            continue
+        p = input('please create your password: ')
+        fname = input('please enter your first name: ')
+        lname = input('please enter your last name: ')
+
+        cur.execute(sql_calls['sign up'], (u, p, fname, lname))
+        cnx.commit()
+        return main_menu(cnx, cur, u)
 
 functions={
     'show':show_pages,
@@ -168,7 +197,7 @@ def login_sequence():
     pword = input('Enter mysql password: ')
 
     try:
-        cnx = pymysql.connect(host='localhost', user='root', password=uname, db=pword,
+        cnx = pymysql.connect(host='localhost', user=uname, password=pword, db='tvshows',
                               charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
     except:
         print('incorrect username or password')
@@ -192,6 +221,7 @@ def login_sequence():
     cnx.close()
 
 def main_menu(cnx, cur, username):
+    clear()
     print('welcome {username}!'.format(username=username))
 
     while True:
@@ -203,10 +233,10 @@ def main_menu(cnx, cur, username):
             if c == 'quit':
                 print('Thanks!')
                 return
-            os.system('clear')
+            clear()
             functions[c](cnx, cur, username, c)
         except KeyError:
-            os.system('clear')
+            clear()
             print('please enter a valid command')
 
 
